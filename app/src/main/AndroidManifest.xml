@@ -4,7 +4,6 @@
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
@@ -27,6 +26,16 @@
             android:enabled="true"
             android:exported="true" />
 
+        <receiver
+            android:name=".LocationRestarterBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:label="RestartLocationServiceWhenStopped"
+            >
+            <intent-filter>
+                <action android:name="LocationServiceRestart"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

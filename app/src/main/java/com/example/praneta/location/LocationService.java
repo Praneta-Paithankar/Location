@@ -1,15 +1,19 @@
 package com.example.praneta.location;
 
 import android.Manifest;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -21,6 +25,8 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
+import static com.example.praneta.location.R.drawable;
+
 
 public class LocationService extends Service implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener
 {
@@ -28,14 +34,17 @@ public class LocationService extends Service implements GoogleApiClient.Connecti
     public static final String EXTRA_LATITUDE = "extra_latitude";
     public static final String EXTRA_LONGITUDE = "extra_longitude";
     private static final String TAG = LocationService.class.getSimpleName();
-
+    String latitude;
+    String longitude;
     GoogleApiClient mLocationClient;
     LocationRequest mLocationRequest;
     private LocationCallback mLocationCallback;
     private FusedLocationProviderClient mFusedLocationClient;
-
+    private NotificationManager notificationManager;
+    NotificationCompat.Builder mBuilder;
 
     public LocationService() {
+
         mLocationRequest = new LocationRequest();
     }
 
@@ -65,11 +74,29 @@ public class LocationService extends Service implements GoogleApiClient.Connecti
     public void onConnected(@Nullable Bundle bundle) {
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
+        mBuilder = new NotificationCompat.Builder(this, "LocationNotify")
+                .setSmallIcon(drawable.common_google_signin_btn_icon_dark)
+                .setContentTitle("Location")
+                .setPriority(NotificationCompat.PRIORITY_HIGH);
+        notificationManager = (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Create the NotificationChannel, but only on API 26+ because
+            // the NotificationChannel class is new and not in the support library
+            NotificationChannel channel = new NotificationChannel("LocationNotify", "Location Notification", NotificationManager.IMPORTANCE_HIGH);
+            channel.setDescription("Sends update of location");
+            // Register the channel with the system
+            notificationManager.createNotificationChannel(channel);
+        }
+
         mLocationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 super.onLocationResult(locationResult);
                 Location location = locationResult.getLastLocation();
+                latitude=String.valueOf(location.getLatitude());
+                longitude=String.valueOf(location.getLongitude());
+                mBuilder.setContentText("Current Location is"+ latitude+" " + longitude);
+                notificationManager.notify(1, mBuilder.build());
                 sendMessageToUI(String.valueOf(location.getLatitude()), String.valueOf(location.getLongitude()));
             }
         };
@@ -100,6 +127,13 @@ public class LocationService extends Service implements GoogleApiClient.Connecti
         Log.d(TAG, "Failed to connect to Google API");
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.i("EXIT", "ondestroy!");
+        Intent broadcastIntent = new Intent("LocationServiceRestart");
+        sendBroadcast(broadcastIntent);
+    }
 
     private void sendMessageToUI(String lat, String lng) {
 

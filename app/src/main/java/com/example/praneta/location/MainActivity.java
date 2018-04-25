@@ -1,6 +1,7 @@
 package com.example.praneta.location;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -152,7 +153,17 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
         dialog.show();
     }
-
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                Log.i ("isMyServiceRunning?", true+"");
+                return true;
+            }
+        }
+        Log.i ("isMyServiceRunning?", false+"");
+        return false;
+    }
     /**
      * Step 3: Start the Location Monitor Service
      */
@@ -167,7 +178,10 @@ public class MainActivity extends AppCompatActivity {
 
             //Start location sharing service to app server.........
             Intent intent = new Intent(this, LocationService.class);
-            startService(intent);
+            if (!isMyServiceRunning(LocationService.class)) {
+                startService(intent);
+            }
+//            startService(intent);
 
             mAlreadyStartedService = true;
             //Ends................................................
@@ -316,7 +330,7 @@ public class MainActivity extends AppCompatActivity {
 
         //Stop location sharing service to app server.........
 
-        //stopService(new Intent(this, LocationService.class));
+        stopService(new Intent(this, LocationService.class));
         //mAlreadyStartedService = false;
         //Ends................................................
 
